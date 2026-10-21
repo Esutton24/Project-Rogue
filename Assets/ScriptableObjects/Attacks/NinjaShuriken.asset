@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8616c2080ee7332469af014c690a6600, type: 3}
+  m_Name: NinjaShuriken
+  m_EditorClassIdentifier: Assembly-CSharp::AttackDataSO
+  attackName: Shuriken
+  attackType: 1
+  damage: 15
+  cooldown: 0.35
+  range: 20
+  projectilePrefab: {fileID: 7053013836959453742, guid: 05a3ab71eda58014f9de9e152fc1d36b, type: 3}
+  attackEffect: {fileID: 0}
+  attackSound: {fileID: 0}
+  description: 

@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da3634f2a2fd8584f87abddc93228ac3, type: 3}
+  m_Name: Class_Superhero
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerClassSO
+  className: Superhero
+  classIcon: {fileID: 0}
+  moveSpeedMultiplier: 1.1
+  jumpForceMultiplier: 1.5
+  attacks:
+  - {fileID: 11400000, guid: cb43f32d0fbbc0b4495076dd85dcc6a0, type: 2}
+  - {fileID: 11400000, guid: 5bf58888cbbb2484c9bc7c06a88ccd12, type: 2}
