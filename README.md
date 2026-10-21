@@ -1,2 +1,2 @@
 # Project Rogue
-Halloween themed roguelike
+Halloween themed roguelike - Work in progress
