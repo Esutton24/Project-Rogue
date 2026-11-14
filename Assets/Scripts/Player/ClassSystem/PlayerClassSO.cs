@@ -1,3 +1,4 @@
+
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -6,6 +7,9 @@ public class PlayerClassSO : ScriptableObject
 {
     public string className = "Class";
     public Sprite classIcon;
+
+    [Header("Character")]
+    public GameObject characterPrefab;
 
     [Header("Stat Multipliers")]
     public float moveSpeedMultiplier = 1f;

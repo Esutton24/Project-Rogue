@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerClassSO
   className: Ninja
   classIcon: {fileID: 0}
+  characterPrefab: {fileID: 3336556155590068975, guid: b72788b73b3d949fb9712e2f05043d46, type: 3}
   moveSpeedMultiplier: 1.35
   jumpForceMultiplier: 1.2
   attacks:

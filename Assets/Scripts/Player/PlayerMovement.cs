@@ -1,3 +1,4 @@
+
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -6,6 +7,7 @@ public class PlayerMovement : MonoBehaviour
 {
     [Header("Movement")]
     [SerializeField] private float moveSpeed = 8f;
+    [SerializeField] private float sprintSpeedMultiplier = 1.5f;
 
     [Header("Rotation")]
     [Tooltip("How fast the player turns to face movement / camera")]
@@ -24,8 +26,12 @@ public class PlayerMovement : MonoBehaviour
 
     private Rigidbody rb;
     private PlayerInputActions inputActions;
+    private Animator animator;
+
     private Vector2 moveInput;
     private bool jumpRequested;
+    private bool sprintHeld;
+
     private float baseMoveSpeed;
     private float baseJumpForce;
 
@@ -33,6 +39,10 @@ public class PlayerMovement : MonoBehaviour
     {
         rb = GetComponent<Rigidbody>();
         inputActions = new PlayerInputActions();
+
+        // The Ninja is spawned later, so this may initially be null.
+        animator = GetComponentInChildren<Animator>();
+
         baseMoveSpeed = moveSpeed;
         baseJumpForce = jumpForce;
     }
@@ -42,6 +52,10 @@ public class PlayerMovement : MonoBehaviour
         inputActions.Player.Move.performed += OnMove;
         inputActions.Player.Move.canceled += OnMove;
         inputActions.Player.Jump.performed += OnJumpRequested;
+
+        inputActions.Player.Sprint.performed += OnSprint;
+        inputActions.Player.Sprint.canceled += OnSprint;
+
         inputActions.Player.Enable();
     }
 
@@ -50,6 +64,10 @@ public class PlayerMovement : MonoBehaviour
         inputActions.Player.Move.performed -= OnMove;
         inputActions.Player.Move.canceled -= OnMove;
         inputActions.Player.Jump.performed -= OnJumpRequested;
+
+        inputActions.Player.Sprint.performed -= OnSprint;
+        inputActions.Player.Sprint.canceled -= OnSprint;
+
         inputActions.Player.Disable();
     }
 
@@ -64,6 +82,17 @@ public class PlayerMovement : MonoBehaviour
             jumpRequested = true;
     }
 
+    void OnSprint(InputAction.CallbackContext context)
+    {
+        sprintHeld = context.ReadValue<float>() > 0.5f;
+    }
+
+    // Called by PlayerClassManager after spawning the Ninja prefab.
+    public void SetAnimator(Animator newAnimator)
+    {
+        animator = newAnimator;
+    }
+
     public void ApplyClassStats(float speedMult, float jumpMult)
     {
         moveSpeed = baseMoveSpeed * speedMult;
@@ -72,54 +101,112 @@ public class PlayerMovement : MonoBehaviour
 
     bool IsGrounded()
     {
-        return Physics.Raycast(transform.position, Vector3.down, groundCheckDistance, groundLayer);
+        return Physics.Raycast(
+            transform.position,
+            Vector3.down,
+            groundCheckDistance,
+            groundLayer
+        );
     }
 
     void FixedUpdate()
     {
-        // --- Camera-relative move vector ---
-        Vector3 camForward = cameraTransform != null ? cameraTransform.forward : Vector3.forward;
-        Vector3 camRight = cameraTransform != null ? cameraTransform.right : Vector3.right;
+        // Camera-relative movement direction
+        Vector3 camForward = cameraTransform != null
+            ? cameraTransform.forward
+            : Vector3.forward;
+
+        Vector3 camRight = cameraTransform != null
+            ? cameraTransform.right
+            : Vector3.right;
 
         camForward.y = 0f;
         camRight.y = 0f;
+
         camForward.Normalize();
         camRight.Normalize();
 
-        Vector3 move = (camRight * moveInput.x) + (camForward * moveInput.y);
+        Vector3 move = (camRight * moveInput.x) +
+                       (camForward * moveInput.y);
 
-        // --- Apply velocity ---
-        rb.linearVelocity = new Vector3(move.x * moveSpeed, rb.linearVelocity.y, move.z * moveSpeed);
+        // Determine movement and sprint state
+        bool isMoving = moveInput.magnitude > 0.1f;
+        bool isSprinting = isMoving && sprintHeld;
 
-        // --- Rotate capsule to face move direction, or camera when idle ---
+        // Update Animator parameters
+        if (animator != null)
+        {
+            animator.SetFloat(
+                "Speed",
+                moveInput.magnitude,
+                0.1f,
+                Time.fixedDeltaTime
+            );
+
+            animator.SetBool("IsSprinting", isSprinting);
+        }
+
+        // Apply walking or sprinting speed
+        float currentSpeed = isSprinting
+            ? moveSpeed * sprintSpeedMultiplier
+            : moveSpeed;
+
+        rb.linearVelocity = new Vector3(
+            move.x * currentSpeed,
+            rb.linearVelocity.y,
+            move.z * currentSpeed
+        );
+
+        // Rotate capsule to face movement direction,
+        // or camera direction when idle.
         Vector3 lookDir = Vector3.zero;
 
         if (move.sqrMagnitude > 0.01f)
         {
-            lookDir = move.normalized; // face where we are running
+            lookDir = move.normalized;
         }
         else if (cameraTransform != null)
         {
             Vector3 camFlat = cameraTransform.forward;
             camFlat.y = 0f;
+
             if (camFlat.sqrMagnitude > 0.001f)
-                lookDir = camFlat.normalized; // face where camera looks when standing still
+                lookDir = camFlat.normalized;
         }
 
         if (lookDir.sqrMagnitude > 0.001f)
         {
-            Quaternion targetRot = Quaternion.LookRotation(lookDir, Vector3.up);
-            rb.MoveRotation(Quaternion.Slerp(rb.rotation, targetRot, turnSpeed * Time.fixedDeltaTime));
+            Quaternion targetRot = Quaternion.LookRotation(
+                lookDir,
+                Vector3.up
+            );
+
+            rb.MoveRotation(
+                Quaternion.Slerp(
+                    rb.rotation,
+                    targetRot,
+                    turnSpeed * Time.fixedDeltaTime
+                )
+            );
         }
 
-        // --- Extra gravity while airborne ---
+        // Extra gravity while airborne
         if (!IsGrounded())
-            rb.AddForce(Physics.gravity * (gravityMultiplier - 1f), ForceMode.Acceleration);
+        {
+            rb.AddForce(
+                Physics.gravity * (gravityMultiplier - 1f),
+                ForceMode.Acceleration
+            );
+        }
 
-        // --- Jump ---
+        // Jump
         if (jumpRequested && IsGrounded())
         {
-            rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+            rb.AddForce(
+                Vector3.up * jumpForce,
+                ForceMode.Impulse
+            );
+
             jumpRequested = false;
         }
     }
@@ -127,6 +214,15 @@ public class PlayerMovement : MonoBehaviour
     void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.yellow;
-        Gizmos.DrawLine(transform.position, transform.position + Vector3.down * groundCheckDistance);
+
+        Gizmos.DrawLine(
+            transform.position,
+            transform.position + Vector3.down * groundCheckDistance
+        );
+    }
+
+    void OnDestroy()
+    {
+        inputActions?.Dispose();
     }
 }

@@ -1,3 +1,4 @@
+
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -10,16 +11,27 @@ public class PlayerCombat : MonoBehaviour
     private PlayerInputActions inputActions;
     private float[] cooldownTimers;
     private bool[] attackReady;
+    private Animator animator;
 
     void Awake()
     {
         inputActions = new PlayerInputActions();
+
+        // The Ninja is spawned later by PlayerClassManager.
+        animator = GetComponentInChildren<Animator>();
+    }
+
+    // Called by PlayerClassManager after spawning the Ninja prefab.
+    public void SetAnimator(Animator newAnimator)
+    {
+        animator = newAnimator;
     }
 
     void Start()
     {
         if (classManager != null)
             classManager.OnClassChanged += OnClassChanged;
+
         InitializeCooldowns();
     }
 
@@ -50,6 +62,7 @@ public class PlayerCombat : MonoBehaviour
         if (classManager?.CurrentClass == null) return;
 
         int count = classManager.CurrentClass.attacks.Count;
+
         cooldownTimers = new float[count];
         attackReady = new bool[count];
 
@@ -66,6 +79,7 @@ public class PlayerCombat : MonoBehaviour
             if (!attackReady[i])
             {
                 cooldownTimers[i] -= Time.deltaTime;
+
                 if (cooldownTimers[i] <= 0f)
                     attackReady[i] = true;
             }
@@ -80,10 +94,18 @@ public class PlayerCombat : MonoBehaviour
     void TryUseAttack(int index)
     {
         var cls = classManager?.CurrentClass;
+
         if (cls == null || index >= cls.attacks.Count) return;
         if (!attackReady[index]) return;
 
         AttackDataSO attack = cls.attacks[index];
+
+        // Play the attack animation.
+        if (animator != null)
+            animator.SetTrigger("Attack");
+        else
+            Debug.LogWarning("[PlayerCombat] Animator reference is missing!");
+
         ExecuteAttack(attack);
 
         attackReady[index] = false;
@@ -97,19 +119,28 @@ public class PlayerCombat : MonoBehaviour
             case AttackType.Melee:
                 PerformMelee(attack);
                 break;
+
             case AttackType.Ranged:
                 PerformRanged(attack);
                 break;
+
             case AttackType.Area:
                 PerformArea(attack);
                 break;
         }
 
         if (attack.attackEffect != null)
-            Instantiate(attack.attackEffect, attackOrigin.position, attackOrigin.rotation);
+            Instantiate(
+                attack.attackEffect,
+                attackOrigin.position,
+                attackOrigin.rotation
+            );
 
         if (attack.attackSound != null)
-            AudioSource.PlayClipAtPoint(attack.attackSound, transform.position);
+            AudioSource.PlayClipAtPoint(
+                attack.attackSound,
+                transform.position
+            );
     }
 
     void PerformMelee(AttackDataSO attack)
@@ -119,10 +150,19 @@ public class PlayerCombat : MonoBehaviour
         Vector3 origin = attackOrigin.position;
         Vector3 aimDir = (playerAim.AimPoint - origin).normalized;
 
-        if (Physics.Raycast(origin, aimDir, out RaycastHit hit, attack.range))
+        if (Physics.Raycast(
+            origin,
+            aimDir,
+            out RaycastHit hit,
+            attack.range
+        ))
         {
-            hit.collider.GetComponent<IDamageable>()?.TakeDamage(attack.damage);
-            Debug.Log($"Melee hit {hit.collider.name} for {attack.damage}");
+            hit.collider.GetComponent<IDamageable>()
+                ?.TakeDamage(attack.damage);
+
+            Debug.Log(
+                $"Melee hit {hit.collider.name} for {attack.damage}"
+            );
         }
     }
 
@@ -130,16 +170,22 @@ public class PlayerCombat : MonoBehaviour
     {
         if (attack.projectilePrefab == null || playerAim == null) return;
 
-        // Offset spawn along the aim direction so it doesn't clip the player
-        Vector3 aimDir = (playerAim.AimPoint - attackOrigin.position).normalized;
+        Vector3 aimDir =
+            (playerAim.AimPoint - attackOrigin.position).normalized;
+
         Vector3 spawnPos = attackOrigin.position + aimDir * 0.6f;
         Quaternion aimRot = playerAim.GetAimRotation(spawnPos);
 
-        GameObject proj = Instantiate(attack.projectilePrefab, spawnPos, aimRot);
+        GameObject proj = Instantiate(
+            attack.projectilePrefab,
+            spawnPos,
+            aimRot
+        );
 
         if (proj.TryGetComponent<Projectile>(out var p))
         {
             p.Damage = attack.damage;
+
             if (TryGetComponent<Collider>(out var col))
                 p.OwnerCollider = col;
         }
@@ -147,16 +193,22 @@ public class PlayerCombat : MonoBehaviour
 
     void PerformArea(AttackDataSO attack)
     {
-        Collider[] hits = Physics.OverlapSphere(transform.position, attack.range);
+        Collider[] hits = Physics.OverlapSphere(
+            transform.position,
+            attack.range
+        );
+
         foreach (var c in hits)
         {
-            c.GetComponent<IDamageable>()?.TakeDamage(attack.damage);
+            c.GetComponent<IDamageable>()
+                ?.TakeDamage(attack.damage);
         }
     }
 
     void OnDestroy()
     {
         inputActions?.Dispose();
+
         if (classManager != null)
             classManager.OnClassChanged -= OnClassChanged;
     }
