@@ -8,7 +8,7 @@ public class Projectile : MonoBehaviour
     [SerializeField] private float lifetime = 3f;
 
     public float Damage { get; set; } = 10f;
-    public Collider OwnerCollider { get; set; }
+    public Transform OwnerRoot { get; set; }
 
     private Rigidbody rb;
 
@@ -18,7 +18,6 @@ public class Projectile : MonoBehaviour
         rb.useGravity = false;
         rb.interpolation = RigidbodyInterpolation.Interpolate;
 
-        // Force the collider to be a trigger so we detect enemies reliably
         Collider col = GetComponent<Collider>();
         col.isTrigger = true;
 
@@ -27,21 +26,23 @@ public class Projectile : MonoBehaviour
 
     void FixedUpdate()
     {
-        // Velocity-driven physics (much more reliable than Transform.Translate)
         rb.linearVelocity = transform.forward * speed;
     }
 
     void OnTriggerEnter(Collider other)
     {
-        // Ignore the shooter
-        if (OwnerCollider != null && other == OwnerCollider) return;
+        // Ignore ANY collider that belongs to the shooter (root + all children)
+        if (OwnerRoot != null &&
+            (other.transform == OwnerRoot || other.transform.IsChildOf(OwnerRoot)))
+        {
+            return;
+        }
 
-        // Ignore other triggers (zones, pickups, etc.)
-        if (other.isTrigger) return;
+        // Ignore pure trigger zones (pickups, detectors) that can't take damage
+        var damageable = other.GetComponent<IDamageable>();
+        if (other.isTrigger && damageable == null) return;
 
-        // Deal damage if the thing is damageable
-        other.GetComponent<IDamageable>()?.TakeDamage(Damage);
-
+        damageable?.TakeDamage(Damage);
         Destroy(gameObject);
     }
 }

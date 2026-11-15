@@ -1,10 +1,22 @@
 
 using UnityEngine;
 
+
 public class PlayerClassManager : MonoBehaviour
 {
+    [Header("Testing")]
+    [Tooltip("If true, always use the Fallback Class even if GameData has a selection.")]
+    [SerializeField] private bool forceFallbackInEditor = false;
+
+    #if UNITY_EDITOR
+    [ContextMenu("Enable Fallback For Direct Play")]
+    void EnableFallback() => forceFallbackInEditor = true;
+#endif
+
+    [Header("Player Setup")]
     [SerializeField] private PlayerMovement movement;
     [SerializeField] private PlayerClassSO fallbackClass;
+    [SerializeField] private Transform visualAnchor;
 
     [Header("Character Setup")]
     [SerializeField] private Transform characterParent;
@@ -58,9 +70,7 @@ public class PlayerClassManager : MonoBehaviour
     void LoadCharacter()
     {
         if (currentCharacter != null)
-        {
             Destroy(currentCharacter);
-        }
 
         if (CurrentClass.characterPrefab == null)
         {
@@ -68,31 +78,27 @@ public class PlayerClassManager : MonoBehaviour
             return;
         }
 
-        Transform parent = characterParent != null ? characterParent : transform;
+        if (visualAnchor == null)
+            visualAnchor = transform;
 
+        // Spawn under the anchor
         currentCharacter = Instantiate(
             CurrentClass.characterPrefab,
-            parent
+            visualAnchor
         );
 
+        // Apply per-class offset
+        currentCharacter.transform.localPosition = CurrentClass.spawnPositionOffset;
+        currentCharacter.transform.localRotation = Quaternion.Euler(CurrentClass.spawnRotationOffset);
+
+        // Find animator
         Animator spawnedAnimator = currentCharacter.GetComponentInChildren<Animator>(true);
 
-        if (movement != null)
-        {
-            movement.SetAnimator(spawnedAnimator);
-        }
-
-        PlayerCombat combat = GetComponent<PlayerCombat>();
-
-        if (combat != null)
+        movement?.SetAnimator(spawnedAnimator);
+        if (TryGetComponent<PlayerCombat>(out var combat))
         {
             combat.SetAnimator(spawnedAnimator);
         }
-
-        currentCharacter.transform.localPosition = Vector3.zero;
-        currentCharacter.transform.localRotation = Quaternion.identity;
-        currentCharacter.transform.localScale = Vector3.one;
-        
     }
 
     void ApplyStats()

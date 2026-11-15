@@ -170,24 +170,16 @@ public class PlayerCombat : MonoBehaviour
     {
         if (attack.projectilePrefab == null || playerAim == null) return;
 
-        Vector3 aimDir =
-            (playerAim.AimPoint - attackOrigin.position).normalized;
-
-        Vector3 spawnPos = attackOrigin.position + aimDir * 0.6f;
+        Vector3 aimDir = (playerAim.AimPoint - attackOrigin.position).normalized;
+        Vector3 spawnPos = attackOrigin.position + aimDir * 1.0f; // larger offset
         Quaternion aimRot = playerAim.GetAimRotation(spawnPos);
 
-        GameObject proj = Instantiate(
-            attack.projectilePrefab,
-            spawnPos,
-            aimRot
-        );
+        GameObject proj = Instantiate(attack.projectilePrefab, spawnPos, aimRot);
 
         if (proj.TryGetComponent<Projectile>(out var p))
         {
             p.Damage = attack.damage;
-
-            if (TryGetComponent<Collider>(out var col))
-                p.OwnerCollider = col;
+            p.OwnerRoot = transform; // pass the root, not just one collider
         }
     }
 

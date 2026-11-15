@@ -9,7 +9,7 @@ public class EnemySkeleton : EnemyBase
     {
         if (boneProjectilePrefab == null || attackOrigin == null) return;
 
-        Vector3 spawnPos = attackOrigin.position + transform.forward * 0.6f;
+        Vector3 spawnPos = attackOrigin.position + transform.forward * 1.0f;
         Vector3 aimDir = (target.position + Vector3.up * 0.8f - spawnPos).normalized;
         Quaternion rot = Quaternion.LookRotation(aimDir);
 
@@ -17,8 +17,7 @@ public class EnemySkeleton : EnemyBase
         if (proj.TryGetComponent<Projectile>(out var p))
         {
             p.Damage = enemyData.damage;
-            if (TryGetComponent<Collider>(out var col))
-                p.OwnerCollider = col;
+            p.OwnerRoot = transform; // pass the root transform, not a single collider
         }
     }
 }
